@@ -37,6 +37,10 @@ uint8_t buf[SERIAL_BUF_BYTES]; 		// main serial port buffer
 int not_done;				// for SIGINT
 uint8_t framebuf[AUDIO_FRAME_SAMPLES*SAMP_SIZE]; // frame buffer
 
+#if ( SERIAL_BUF_BYTES < AUDIO_FRAME_SAMPLES*SAMP_SIZE+4 )
+#error "Embiggen RX Buffer"
+#endif
+
 int open_port(void) {
 	int fd; /* File descriptor for the port */
 	fd = open(COMPORT, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -105,8 +109,9 @@ int main(int argc, char **argv) {
 		unsigned frame_bytes = 0;
 		uint8_t *frame_ptr;
 
-		// Looking for marker 
-		r_got = read(fd, buf, sizeof(buf));
+		// Looking for marker
+		// Read no more than one frame
+		r_got = read(fd, buf, AUDIO_FRAME_SAMPLES*SAMP_SIZE+4);
 		if (r_got == 0) break;
 		if (r_got < 0) {
 			perror("read() error: ");
